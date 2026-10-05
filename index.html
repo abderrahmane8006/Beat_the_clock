@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BEAT THE CLOCK — Time Management Challenge</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<section id="home" class="screen on center">
+  <div class="logo">⏰</div>
+  <h1>BEAT THE CLOCK</h1>
+  <h2>Time Management Challenge</h2>
+  <h3>Can You Manage Your Day?</h3>
+  <p class="lead">You have one very busy day.<br>Every task is mandatory.<br>Your goal is to organize your schedule, respect deadlines, and adapt to unexpected events.</p>
+  <label class="team">ENTER YOUR TEAM NAME <input id="team" maxlength="24" placeholder="Team Alpha"></label>
+  <button class="btn big" data-go="matrix">START CHALLENGE</button>
+  <button class="btn ghost" data-go="how">HOW TO PLAY</button>
+</section>
+
+<section id="how" class="screen center">
+  <h1>HOW TO PLAY</h1>
+  <div class="panel">
+    <h2>Objective</h2>
+    <p>Organize all mandatory tasks between <b>7:00 AM and 11:00 PM</b>.</p>
+    <ul class="rules">
+      <li>✅ Complete every task</li><li>🔒 Respect fixed schedules</li><li>⏳ Respect deadlines</li>
+      <li>⚠️ Avoid time conflicts</li><li>🚨 Adapt to unexpected events</li>
+      <li>👆 Drag cards onto the timeline. Drag them again to move them. Drop them back on the task list to unschedule.</li>
+    </ul>
+    <p class="big-red">YOU CANNOT DELETE ANY TASK.</p>
+    <blockquote>The goal is not to do everything quickly.<br>The goal is to organize your time intelligently.</blockquote>
+  </div>
+  <button class="btn big" data-go="matrix">CONTINUE</button>
+</section>
+
+<section id="matrix" class="screen center">
+  <h1>THE EISENHOWER MATRIX</h1>
+  <div class="mx">
+    <div class="corner"></div><div class="hd">Urgent</div><div class="hd">Not Urgent</div>
+    <div class="hd side">Important</div>
+    <div class="q q-do"><h3>DO NOW</h3><p>Important and urgent.</p><small>"Study for an exam tomorrow."</small></div>
+    <div class="q q-plan"><h3>PLAN</h3><p>Important but not urgent.</p><small>"Prepare a project due next week."</small></div>
+    <div class="hd side">Not Important</div>
+    <div class="q q-del"><h3>DELEGATE</h3><p>Urgent but not necessarily requiring you personally.</p><small>"Ask another team member to print documents."</small></div>
+    <div class="q q-eli"><h3>ELIMINATE</h3><p>Neither important nor urgent.</p><small>"Scrolling social media for hours."</small></div>
+  </div>
+  <blockquote class="big-q">But what happens when almost everything is important?</blockquote>
+  <button class="btn big" id="go">LET'S FIND OUT</button>
+</section>
+
+<section id="game" class="screen">
+  <header class="bar">
+    <div class="brand">⏰ BEAT THE CLOCK <small id="tname"></small></div>
+    <div id="timer"><span>TIME LEFT</span><b id="time">04:00</b><div class="pbar"><i id="pfill"></i></div><em id="hurry">HURRY UP!</em></div>
+    <div class="tools">
+      <span id="bell" class="bell" hidden>🔔 NEW URGENT MESSAGE</span>
+      <button id="snd" class="btn sm" aria-label="Sound on/off">🔊 SOUND</button>
+      <button id="fs" class="btn sm">FULLSCREEN</button>
+      <button id="reset" class="btn sm">RESET GAME</button>
+      <button id="back" class="btn sm" hidden>BACK TO RESULTS</button>
+    </div>
+  </header>
+  <div id="warn" aria-live="polite"></div>
+  <div class="cols">
+    <aside id="trayPanel"><h3>📋 TASKS <span id="left"></span></h3><div id="tray"></div></aside>
+    <section id="sched" aria-label="Daily schedule"><div id="grid"><div id="slots"></div><div id="blocks"></div><div id="preview" hidden></div></div></section>
+  </div>
+</section>
+
+<section id="results" class="screen">
+  <h1>YOUR TIME MANAGEMENT SCORE</h1>
+  <div class="resrow">
+    <div class="ringbox">
+      <svg viewBox="0 0 160 160" class="ring"><circle cx="80" cy="80" r="70" class="ring-bg"/><circle id="ringfg" cx="80" cy="80" r="70" class="ring-fg" transform="rotate(-90 80 80)"/></svg>
+      <div class="ringtxt"><b id="rscore">0</b><span>/ 100</span></div>
+    </div>
+    <div class="panel">
+      <h2 id="rteam"></h2>
+      <table id="rb"></table>
+      <p id="rfeed" class="feed"></p>
+    </div>
+  </div>
+  <div class="panel"><h2>WHAT COULD BE IMPROVED?</h2><ul id="rmist"></ul></div>
+  <div class="panel"><h2>LEADERBOARD</h2><ol id="lb"></ol></div>
+  <h2 class="center-t">WHAT DID YOU LEARN?</h2>
+  <div class="learn">
+    <div><h3>PRIORITIZE</h3>Know what is urgent and important.</div>
+    <div><h3>PLAN</h3>Do important tasks before they become emergencies.</div>
+    <div><h3>LEAVE BUFFER TIME</h3>Unexpected events happen.</div>
+    <div><h3>STAY FLEXIBLE</h3>A good schedule can change.</div>
+    <div><h3>BE REALISTIC</h3>Do not fill every minute of your day.</div>
+    <div><h3>FOCUS</h3>Avoid unnecessary multitasking.</div>
+  </div>
+  <div class="remember">
+    <h2>REMEMBER</h2>
+    <blockquote>Time management is not about having more time.<br>It is about using your time better.</blockquote>
+    <div class="words"><b>PRIORITIZE</b><b>PLAN</b><b>ORGANIZE</b><b>ADAPT</b></div>
+  </div>
+  <div class="btnrow"><button class="btn big" id="again">PLAY AGAIN</button><button class="btn ghost" id="view">VIEW MY SCHEDULE</button></div>
+</section>
+</main>
+
+<div id="modal" hidden><div class="mbox" role="dialog" aria-modal="true"></div></div>
+
+<button id="ptoggle" class="btn sm ptoggle" title="Presenter mode (P)">🎤 P</button>
+<aside id="pres" hidden>
+  <h3>🎤 PRESENTER MODE <small>(key P)</small></h3>
+  <button data-p="start">▶ Start game</button><button data-p="pause">⏸ Pause</button><button data-p="resume">⏯ Resume</button>
+  <button data-p="restart">🔄 Restart game</button><button data-p="e1">🚨 Trigger Event 1 (exam)</button><button data-p="e2">🚨 Trigger Event 2 (meeting)</button>
+  <button data-p="e3">🚌 Trigger Transport Delay</button><button data-p="skip">⏭ Skip next event</button><button data-p="clearsched">🧹 Reset all schedules</button>
+  <button data-p="end">⏹ End now (show results)</button>
+  <label><input type="checkbox" id="e3on"> Enable Transport Delay (auto at 3:15)</label>
+  <button data-p="clearlb" class="danger">CLEAR LEADERBOARD</button>
+</aside>
+
+<script src="script.js"></script>
+</body>
+</html>
