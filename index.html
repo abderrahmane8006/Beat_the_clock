@@ -59,11 +59,11 @@
       <span id="bell" class="bell" hidden>🔔 NEW URGENT MESSAGE</span>
       <button id="snd" class="btn sm" aria-label="Sound on/off">🔊 SOUND</button>
       <button id="fs" class="btn sm">FULLSCREEN</button>
-      <button id="reset" class="btn sm">RESET GAME</button>
       <button id="back" class="btn sm" hidden>BACK TO RESULTS</button>
     </div>
   </header>
   <div id="warn" aria-live="polite"></div>
+  <div id="mobileHelp" class="mobile-help">📱 <b>Mobile:</b> tap a task, then tap a time on the schedule. Tap a scheduled task to move it.</div>
   <div class="cols">
     <aside id="trayPanel"><h3>📋 TASKS <span id="left"></span></h3><div id="tray"></div></aside>
     <section id="sched" aria-label="Daily schedule"><div id="grid"><div id="slots"></div><div id="blocks"></div><div id="preview" hidden></div></div></section>
@@ -84,7 +84,7 @@
     </div>
   </div>
   <div class="panel"><h2>WHAT COULD BE IMPROVED?</h2><ul id="rmist"></ul></div>
-  <div class="panel"><h2>LEADERBOARD</h2><ol id="lb"></ol></div>
+  <div class="panel leaderboard-panel"><div class="leader-head"><h2>GLOBAL LEADERBOARD</h2><button class="btn sm" id="refreshLb">↻ REFRESH</button></div><p id="lbStatus" class="lb-status">Loading global results…</p><ol id="lb"></ol></div>
   <h2 class="center-t">WHAT DID YOU LEARN?</h2>
   <div class="learn">
     <div><h3>PRIORITIZE</h3>Know what is urgent and important.</div>
@@ -109,11 +109,10 @@
 <aside id="pres" hidden>
   <h3>🎤 PRESENTER MODE <small>(key P)</small></h3>
   <button data-p="start">▶ Start game</button><button data-p="pause">⏸ Pause</button><button data-p="resume">⏯ Resume</button>
-  <button data-p="restart">🔄 Restart game</button><button data-p="e1">🚨 Trigger Event 1 (exam)</button><button data-p="e2">🚨 Trigger Event 2 (meeting)</button>
+  <button data-p="e1">🚨 Trigger Event 1 (exam)</button><button data-p="e2">🚨 Trigger Event 2 (meeting)</button>
   <button data-p="e3">🚌 Trigger Transport Delay</button><button data-p="skip">⏭ Skip next event</button><button data-p="clearsched">🧹 Reset all schedules</button>
   <button data-p="end">⏹ End now (show results)</button>
   <label><input type="checkbox" id="e3on"> Enable Transport Delay (auto at 3:15)</label>
-  <button data-p="clearlb" class="danger">CLEAR LEADERBOARD</button>
 </aside>
 
 <script src="script.js"></script>

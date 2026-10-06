@@ -30,6 +30,8 @@ const EVENTS = {
 const $ = id => document.getElementById(id);
 const T = id => TASKS.find(t => t.id === id);
 let S, team = 'Team', e3on = false, snd = true, modalOpen = false, D = null, AC, last = Date.now();
+let selectedPid = null;
+const coarsePointer = () => window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 800;
 
 /* ---------- state ---------- */
 function newState(){
@@ -136,6 +138,7 @@ function render(){
   $('tray').innerHTML = un.length ? un.map(cardHTML).join('') : '<div class="done">✅ All tasks scheduled!<br>Check warnings above and fix any problem.</div>';
   $('left').textContent = `(${un.length} left to place)`;
   $('blocks').innerHTML = S.pieces.filter(p => st(p) != null).map(blockHTML).join('');
+  document.querySelectorAll('#game [data-pid]').forEach(el => el.classList.toggle('selected-card', el.dataset.pid === selectedPid));
   const w = new Set();
   if(conflicts().length) w.add('⚠️ TIME CONFLICT: Two tasks cannot happen at the same time.');
   S.pieces.forEach(p => { const v = viol(p); if(v) w.add(v.startsWith('❌') ? v : '⚠️ ' + v); });
@@ -156,7 +159,7 @@ function renderTimer(){
 /* ---------- screens ---------- */
 function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); window.scrollTo(0,0); }
 function startGame(){
-  cancelDrag(); closeModal(); newState();
+  cancelDrag(); closeModal(); selectedPid = null; newState();
   team = $('team').value.trim() || 'Team';
   S.running = S.started = true; show('game'); render(); beep(520,.12); setTimeout(() => beep(780,.18), 150);
 }
@@ -194,13 +197,44 @@ function finish(){
   $('mok').onclick = () => { closeModal(); showResults(); };
 }
 
-/* ---------- results + leaderboard ---------- */
-const LB = 'btc_leaderboard';
-const lbGet = () => { try { return JSON.parse(localStorage.getItem(LB)) || []; } catch(e){ return []; } };
-const lbSet = v => { try { localStorage.setItem(LB, JSON.stringify(v)); } catch(e){} };
-function showResults(){
+/* ---------- results + GLOBAL leaderboard (Vercel API + Supabase) ---------- */
+const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+async function saveGlobalScore(r){
+  try{
+    const res = await fetch('/api/scores', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({player_name:team, score:r.total, deadlines:r.d, prioritization:r.p, planning:r.pl, adaptability:r.ad})
+    });
+    if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Could not save score');
+    return true;
+  }catch(err){
+    console.warn('Global score save failed:', err);
+    return false;
+  }
+}
+async function loadLeaderboard(){
+  const status = $('lbStatus');
+  status.className = 'lb-status'; status.textContent = 'Loading global results…';
+  try{
+    const res = await fetch('/api/scores', {cache:'no-store'});
+    if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Leaderboard unavailable');
+    const rows = await res.json();
+    if(!rows.length){ $('lb').innerHTML=''; status.className='lb-status'; status.textContent='No scores yet. Be the first player!'; return; }
+    let mine = false;
+    $('lb').innerHTML = rows.map(x => {
+      const me = !mine && x.player_name === team && Number(x.score) === Number($('rscore').textContent); if(me) mine = true;
+      const date = x.created_at ? new Date(x.created_at).toLocaleString([], {dateStyle:'medium', timeStyle:'short'}) : '';
+      return `<li class="${me?'me':''}"><span>${esc(x.player_name)}</span><span class="score">${Number(x.score)}/100</span><small class="lb-date">${esc(date)}</small></li>`;
+    }).join('');
+    status.className='lb-status ok'; status.textContent = `${rows.length} result${rows.length>1?'s':''} • ranked by highest score`;
+  }catch(err){
+    $('lb').innerHTML=''; status.className='lb-status error';
+    status.textContent='Global leaderboard is not connected yet. Configure Supabase + Vercel environment variables.';
+    console.warn(err);
+  }
+}
+async function showResults(){
   const r = score(); show('results');
-  if(!S.saved){ S.saved = true; const l = lbGet(); l.push({team,score:r.total,date:new Date().toLocaleDateString()}); l.sort((a,b) => b.score-a.score); lbSet(l.slice(0,20)); }
   $('rteam').textContent = `${team}: Score ${r.total}/100`;
   $('rscore').textContent = r.total;
   $('rb').innerHTML = [['Deadlines',r.d],['Prioritization',r.p],['Planning',r.pl],['Adaptability',r.ad]].map(x => `<tr><td>${x[0]}</td><td>${x[1]}/25</td></tr>`).join('');
@@ -209,15 +243,20 @@ function showResults(){
     : r.total>=50 ? 'Not bad! Try to improve prioritization and deadline management.'
     : 'Time management challenge! Review your priorities and leave more flexibility in your schedule.';
   $('rmist').innerHTML = (r.M.length ? r.M : ['No major mistakes. Great planning!']).map(m => `<li>${m}</li>`).join('');
-  const l = lbGet(); let mine = false;
-  $('lb').innerHTML = l.slice(0,5).map(x => { const me = !mine && x.team===team && x.score===r.total; if(me) mine = true; return `<li class="${me?'me':''}">${x.team}: ${x.score} <small>(${x.date})</small></li>`; }).join('');
   $('ringfg').style.strokeDashoffset = 439.8;
   setTimeout(() => $('ringfg').style.strokeDashoffset = 439.8*(1-r.total/100), 100);
+  if(!S.saved){
+    S.saved = true;
+    const saved = await saveGlobalScore(r);
+    if(!saved){ $('lbStatus').className='lb-status error'; $('lbStatus').textContent='Score calculated, but it could not be saved to the global database.'; }
+  }
+  await loadLeaderboard();
 }
 
 /* ---------- drag & drop (pointer events: mouse + touch) ---------- */
 function cancelDrag(){ if(D){ D.g.remove(); D.el.classList.remove('lift'); $('preview').hidden = true; $('trayPanel').classList.remove('hot'); D = null; } }
 document.addEventListener('pointerdown', e => {
+  if(coarsePointer()) return; // phones/tablets use tap-to-place instead of long drag
   if(!S || !S.running || S.over || modalOpen || e.button > 0 || e.target.closest('button')) return;
   const el = e.target.closest('#game [data-pid]'); if(!el) return;
   const p = S.pieces.find(x => x.id === el.dataset.pid); if(!p || isFixed(p)) return;
@@ -254,7 +293,30 @@ document.addEventListener('pointerup', () => {
 });
 document.addEventListener('pointercancel', cancelDrag);
 document.addEventListener('click', e => {
-  if(e.target.closest('[data-split]') && S && !S.over) toggleSplit();
+  if(e.target.closest('[data-split]') && S && !S.over){ toggleSplit(); return; }
+  if(!coarsePointer() || !S || !S.running || S.over || modalOpen) return;
+  const pieceEl = e.target.closest('#game [data-pid]');
+  if(pieceEl){
+    const p = S.pieces.find(x => x.id === pieceEl.dataset.pid);
+    if(!p || isFixed(p)) return;
+    selectedPid = p.id;
+    render();
+    $('grid').classList.add('mobile-pick');
+    $('mobileHelp').innerHTML = `📱 <b>${esc(T(p.task).title)} selected.</b> Now tap a time in the schedule.`;
+    return;
+  }
+  const grid = e.target.closest('#grid');
+  if(grid && selectedPid){
+    const p = S.pieces.find(x => x.id === selectedPid); if(!p) return;
+    const r = grid.getBoundingClientRect();
+    let start = DAY0 + Math.round((e.clientY - r.top) / SH) * 15;
+    start = Math.max(DAY0, Math.min(DAY1 - p.dur, start));
+    S.place[p.id] = start;
+    selectedPid = null;
+    $('grid').classList.remove('mobile-pick');
+    $('mobileHelp').innerHTML = '📱 <b>Mobile:</b> tap a task, then tap a time on the schedule. Tap a scheduled task to move it.';
+    render(); beep(700,.05,.03);
+  }
 });
 /* Exam study may be split into max 2 sessions */
 function toggleSplit(){
@@ -279,7 +341,7 @@ $('view').onclick = () => { show('game'); render(); };
 $('back').onclick = showResults;
 $('snd').onclick = () => { snd = !snd; $('snd').textContent = snd ? '🔊 SOUND' : '🔇 SOUND'; };
 $('fs').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {});
-$('reset').onclick = () => { if(confirm('Reset the game? Schedule, timer and events will be restored.')) startGame(); };
+$('refreshLb').onclick = loadLeaderboard;
 
 /* ---------- presenter mode (key P) ---------- */
 const togglePres = () => $('pres').hidden = !$('pres').hidden;
@@ -287,14 +349,13 @@ $('ptoggle').onclick = togglePres;
 document.addEventListener('keydown', e => { if((e.key==='p'||e.key==='P') && !/INPUT|TEXTAREA/.test(e.target.tagName)) togglePres(); });
 $('e3on').onchange = e => e3on = e.target.checked;
 const PRES = {
-  start:startGame, restart:startGame,
+  start:startGame,
   pause(){ if(S.started && !S.over){ S.running = false; renderTimer(); } },
   resume(){ if(S.started && !S.over){ S.running = true; renderTimer(); } },
   e1:() => showEvent('e1'), e2:() => showEvent('e2'), e3:() => showEvent('e3'),
   skip(){ const k = ['e1','e2','e3'].find(x => S.ev[x]==='pending'); if(k) S.ev[k] = 'skipped'; },
   clearsched(){ if(!S.over){ S.place = {}; TASKS.forEach(t => { if(t.fixed != null) S.place[t.id] = t.fixed; }); render(); } },
-  end(){ if(S.started) finish(); },
-  clearlb(){ if(confirm('Clear the leaderboard?')){ lbSet([]); } }
+  end(){ if(S.started) finish(); }
 };
 document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => PRES[b.dataset.p]());
 
