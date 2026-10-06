@@ -139,11 +139,12 @@ blockquote{margin:10px 0;font-size:1.3rem;font-style:italic;border-left:5px soli
   .mobile-help{display:block;font-size:.72rem;padding:5px 8px}
   .cols{grid-template-columns:1fr;grid-template-rows:40% 60%;gap:6px;min-height:0}
   #trayPanel,#sched{border-radius:12px;padding:7px;-webkit-overflow-scrolling:touch}
+  #sched{touch-action:pan-y;overscroll-behavior:contain;scroll-behavior:auto}
   #trayPanel h3{position:sticky;top:-7px;background:#14234b;z-index:5;margin:-7px -7px 6px;padding:8px}
   #tray{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .card{padding:6px;border-left-width:6px;gap:5px;min-height:76px;cursor:pointer}.ic{font-size:1.35rem}.cb b{font-size:.8rem;line-height:1.05;display:block}.cb small{font-size:.65rem;line-height:1.15}.meta{font-size:.68rem;gap:3px}.tag{font-size:.58rem;padding:1px 5px}.splitb{font-size:.65rem;padding:2px 5px}
   #grid{height:calc(64 * 26px);touch-action:pan-y}.slot{height:26px;line-height:26px;font-size:.7rem}.slot.hr{font-size:.8rem}
-  #blocks,#preview{left:52px}.blk{font-size:.72rem;padding:2px 5px;border-left-width:6px;min-height:24px}.blk small{font-size:.62rem}
+  #blocks,#preview{left:52px}.blk{font-size:.72rem;padding:2px 5px;border-left-width:6px;min-height:24px;touch-action:pan-y}.blk small{font-size:.62rem}
   .ghost-card{width:180px;transform:scale(.92)}
   .ptoggle,#pres{display:none!important}
   .panel{padding:14px;margin:8px 0}.resrow{gap:10px}.ringbox{width:170px;height:170px}.ringtxt b{font-size:3rem}

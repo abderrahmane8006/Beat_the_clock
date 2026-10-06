@@ -2,12 +2,30 @@ const MAX_NAME = 24;
 const fields = 'id,player_name,score,deadlines,prioritization,planning,adaptability,created_at';
 
 function env() {
-  const url = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-  // Prefer the new Supabase secret key name, but keep compatibility with the old variable name.
-  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY');
+  let rawUrl = String(process.env.SUPABASE_URL || '').trim();
+  let key = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+
+  // Remove accidental quotes copied from dashboards or .env files.
+  rawUrl = rawUrl.replace(/^["']|["']$/g, '').trim();
+  key = key.replace(/^["']|["']$/g, '').trim();
+
+  if (!rawUrl || !key) {
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  // Accept either the project URL (recommended) or a URL where /rest/v1 was
+  // accidentally included. Only keep the origin: https://<project>.supabase.co
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('SUPABASE_URL is invalid. Expected: https://YOUR_PROJECT_REF.supabase.co');
+  }
+
+  const url = parsed.origin;
   return { url, key };
 }
+
 
 function dbHeaders(key, extra = {}) {
   const headers = {
@@ -38,7 +56,10 @@ export default {
       const { url, key } = env();
 
       if (request.method === 'GET') {
-        const endpoint = `${url}/rest/v1/scores?select=${fields}&order=score.desc,created_at.asc&limit=1000`;
+        const endpoint = new URL('/rest/v1/scores', url);
+        endpoint.searchParams.set('select', fields);
+        endpoint.searchParams.set('order', 'score.desc,created_at.asc');
+        endpoint.searchParams.set('limit', '1000');
         const r = await fetch(endpoint, { headers: dbHeaders(key) });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) {
@@ -67,7 +88,7 @@ export default {
           return json({ error: 'Score details do not match total score' }, 400);
         }
 
-        const endpoint = `${url}/rest/v1/scores`;
+        const endpoint = new URL('/rest/v1/scores', url);
         const r = await fetch(endpoint, {
           method: 'POST',
           headers: dbHeaders(key, { Prefer: 'return=representation' }),

@@ -42,3 +42,8 @@ If the leaderboard says it is not connected, check the two Vercel environment va
 
 ## Security note
 The database secret is protected server-side. However, this is still a browser game, so a determined user could imitate requests. For a classroom/demo leaderboard this setup is appropriate; a competition-grade anti-cheat system would need server-side game-state validation as well.
+
+
+## Mobile schedule scrolling fix
+On touch screens, the schedule can now be scrolled vertically even while a task is selected.
+A swipe only scrolls the schedule; it does not place the selected task. After scrolling, simply tap the desired time slot to place it.

@@ -292,6 +292,39 @@ document.addEventListener('pointerup', () => {
   cancelDrag(); render(); beep(700,.05,.03);
 });
 document.addEventListener('pointercancel', cancelDrag);
+
+/* On phones, distinguish a vertical swipe used to scroll the schedule from a tap used to place a task.
+   Without this guard, some browsers emit a click after a swipe and the selected task can make the
+   schedule feel "blocked". */
+let mobileScheduleGesture = null;
+let suppressScheduleClickUntil = 0;
+document.addEventListener('pointerdown', e => {
+  if(!coarsePointer() || !e.target.closest('#sched')) return;
+  mobileScheduleGesture = {
+    id: e.pointerId,
+    x: e.clientX,
+    y: e.clientY,
+    scrollTop: $('sched').scrollTop,
+    moved: false
+  };
+}, {passive:true});
+document.addEventListener('pointermove', e => {
+  const g = mobileScheduleGesture;
+  if(!g || g.id !== e.pointerId) return;
+  if(Math.abs(e.clientY-g.y) > 8 || Math.abs(e.clientX-g.x) > 8 || Math.abs($('sched').scrollTop-g.scrollTop) > 2){
+    g.moved = true;
+  }
+}, {passive:true});
+document.addEventListener('pointerup', e => {
+  const g = mobileScheduleGesture;
+  if(!g || g.id !== e.pointerId) return;
+  if(g.moved || Math.abs($('sched').scrollTop-g.scrollTop) > 2){
+    suppressScheduleClickUntil = performance.now() + 350;
+  }
+  mobileScheduleGesture = null;
+}, {passive:true});
+document.addEventListener('pointercancel', () => { mobileScheduleGesture = null; }, {passive:true});
+
 document.addEventListener('click', e => {
   if(e.target.closest('[data-split]') && S && !S.over){ toggleSplit(); return; }
   if(!coarsePointer() || !S || !S.running || S.over || modalOpen) return;
@@ -307,6 +340,8 @@ document.addEventListener('click', e => {
   }
   const grid = e.target.closest('#grid');
   if(grid && selectedPid){
+    // A swipe is only scrolling: do not place the selected task when the finger is released.
+    if(performance.now() < suppressScheduleClickUntil) return;
     const p = S.pieces.find(x => x.id === selectedPid); if(!p) return;
     const r = grid.getBoundingClientRect();
     let start = DAY0 + Math.round((e.clientY - r.top) / SH) * 15;
