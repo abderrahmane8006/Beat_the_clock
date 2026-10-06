@@ -229,7 +229,7 @@ async function loadLeaderboard(){
     status.className='lb-status ok'; status.textContent = `${rows.length} result${rows.length>1?'s':''} • ranked by highest score`;
   }catch(err){
     $('lb').innerHTML=''; status.className='lb-status error';
-    status.textContent='Global leaderboard is not connected yet. Configure Supabase + Vercel environment variables.';
+    status.textContent=`Leaderboard error: ${err.message}`;
     console.warn(err);
   }
 }

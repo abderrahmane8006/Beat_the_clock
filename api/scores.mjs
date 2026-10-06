@@ -3,18 +3,24 @@ const fields = 'id,player_name,score,deadlines,prioritization,planning,adaptabil
 
 function env() {
   const url = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  if (!url || !key) throw new Error('Supabase environment variables are missing');
+  // Prefer the new Supabase secret key name, but keep compatibility with the old variable name.
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY');
   return { url, key };
 }
 
 function dbHeaders(key, extra = {}) {
-  return {
+  const headers = {
     apikey: key,
-    Authorization: `Bearer ${key}`,
     'Content-Type': 'application/json',
     ...extra,
   };
+  // Legacy service_role keys are JWTs. New sb_secret_* keys are NOT JWTs and
+  // must not be sent as Authorization: Bearer.
+  if (!key.startsWith('sb_secret_') && !key.startsWith('sb_publishable_')) {
+    headers.Authorization = `Bearer ${key}`;
+  }
+  return headers;
 }
 
 function validInt(value, min, max) {
@@ -34,8 +40,11 @@ export default {
       if (request.method === 'GET') {
         const endpoint = `${url}/rest/v1/scores?select=${fields}&order=score.desc,created_at.asc&limit=1000`;
         const r = await fetch(endpoint, { headers: dbHeaders(key) });
-        const data = await r.json();
-        if (!r.ok) return json({ error: data?.message || 'Could not load scores' }, r.status);
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          console.error('Supabase GET failed', r.status, data);
+          return json({ error: data?.message || data?.error || `Supabase GET failed (${r.status})` }, r.status);
+        }
         return json(data);
       }
 
@@ -64,15 +73,18 @@ export default {
           headers: dbHeaders(key, { Prefer: 'return=representation' }),
           body: JSON.stringify({ player_name, score, deadlines, prioritization, planning, adaptability }),
         });
-        const data = await r.json();
-        if (!r.ok) return json({ error: data?.message || 'Could not save score' }, r.status);
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          console.error('Supabase POST failed', r.status, data);
+          return json({ error: data?.message || data?.error || `Supabase POST failed (${r.status})` }, r.status);
+        }
         return json(data[0] || { ok: true }, 201);
       }
 
       return json({ error: 'Method not allowed' }, 405, { Allow: 'GET, POST' });
     } catch (err) {
-      console.error(err);
-      return json({ error: 'Leaderboard service is not configured or temporarily unavailable' }, 500);
+      console.error('Leaderboard API error:', err);
+      return json({ error: err?.message || 'Leaderboard service unavailable' }, 500);
     }
   },
 };
